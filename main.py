@@ -24,7 +24,7 @@ def main():
     if args.msingle:
         single(args.mod, args.solver, args.verbose)
     if args.mbi:
-        bi(args.solver, args.verbose)
+        bi(args.mod, args.solver, args.verbose)
 
 if __name__ == "__main__":
     main()
