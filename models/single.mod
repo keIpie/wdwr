@@ -13,7 +13,7 @@ param chronology {MONTHS, MONTHS}; # number of resources that can be delivered
 
 var cond {PRODUCTS, MONTHS} binary; # conditional binary variables (if more than 150 entities)
 var Made {PRODUCTS, MONTHS} >= 0 ; # number of products already made month
-var Make {PRODUCTS, MONTHS} >= 0 ; # number of products made per month
+var Make {PRODUCTS, MONTHS} integer >= 0 ; # number of products made per month
 
 minimize Total_Cost: sum {p in PRODUCTS, m in MONTHS} (cost[p,m]*Make[p,m] + cond[p,m]*(Made[p,m]-maxno)*percent*cost[p,m]);
 
