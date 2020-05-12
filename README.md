@@ -16,7 +16,7 @@ To solve single criterion model run:
 
 `./main.py --msingle --mod "single.mod" --verbose`
 
-To bi-criteria model run (TBD):
+To solve bi-criteria model run (TBD):
 
 `./main.py --mbi --mod "bi.mod" --verbose`
 
