@@ -3,7 +3,8 @@
 
 import argparse, os, sys, time
 from testampl import *
-from project import *
+from single import *
+from bi import *
 
 def main():
     parser = argparse.ArgumentParser(description='AMPL modeling.')

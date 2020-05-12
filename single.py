@@ -136,11 +136,6 @@ def single(modfile, solver, verbose):
         print('(Z2, M2) : ', (Make[1]*demand[1][0] + Make[4]*demand[1][1]), "<=", delivery[1][1], (Make[1]*demand[1][0] + Make[4]*demand[1][1]) <= delivery[1][1])
         print('(Z1, M3) : ', (Make[2]*demand[0][0] + Make[5]*demand[0][1]), "<=", delivery[0][2], (Make[2]*demand[0][0] + Make[5]*demand[0][1]) <= delivery[0][2])
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
-def bi(solver, verbose):
-    if(verbose):
-        print("---------------------------------------------------------------")
-        print("   WDWR project 20204 - model dwukryterialny ")
-        print("---------------------------------------------------------------")
 
 def tstudnet(verbose):
     mi = [55,40,50,35,45,30]
