@@ -21,7 +21,7 @@ To solve bi-criteria model run (TBD):
 `./main.py --mbi --mod "bi.mod" --verbose`
 
 Arguments for commands:
-- soler - specifies solver to be used (default cplex)
+- solver - specifies solver to be used (default cplex)
 - verbose - to print intermediate results
 
 For help run:
