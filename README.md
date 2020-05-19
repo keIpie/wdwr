@@ -1,9 +1,5 @@
 # wdwr
 
-A co to ma znaczyc? Czemu tutaj sie pisze projekt a nie Tam? Hmm? 
-
-PS. w 15 linijce jest literowka.
-
 wspomaganie decyzji w warunkach ryzyka - projekt
 
 -----------------------------------------------------------------------------------------
