@@ -236,16 +236,16 @@ def singleR(R, modfile, solver, verbose):
     totalcost = ampl.getObjective('Total_Cost')
     if verbose:
         print("Total cost:", totalcost.value())
+    ampl.display('Make')
+    ampl.display('Made')
+    ampl.display('cond')
+    dfM = ampl.var['Make'].getValues().toPandas()
+    Make = dfM['Make.val'].astype(float)
+    dfMd = ampl.var['Made'].getValues().toPandas()
+    Made = dfMd['Made.val'].astype(float)
+    dfC = ampl.var['cond'].getValues().toPandas()
+    cond = dfC['cond.val'].astype(float)
     if(verbose):
-        ampl.display('Make')
-        ampl.display('Made')
-        ampl.display('cond')
-        dfM = ampl.var['Make'].getValues().toPandas()
-        Make = dfM['Make.val'].astype(float)
-        dfMd = ampl.var['Made'].getValues().toPandas()
-        Made = dfMd['Made.val'].astype(float)
-        dfC = ampl.var['cond'].getValues().toPandas()
-        cond = dfC['cond.val'].astype(float)
         #print('Make:', Make, type(Make))
         #print('time:', nm.dot(invert(a),X))
         print("---------------------------------------------------------------")
@@ -278,7 +278,7 @@ def singleR(R, modfile, solver, verbose):
         print('(Z2, M2) : ', (Make[1]*demand[1][0] + Make[4]*demand[1][1]), "<=", delivery[1][1], (Make[1]*demand[1][0] + Make[4]*demand[1][1]) <= delivery[1][1])
         print('(Z1, M3) : ', (Make[2]*demand[0][0] + Make[5]*demand[0][1]), "<=", delivery[0][2], (Make[2]*demand[0][0] + Make[5]*demand[0][1]) <= delivery[0][2])
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
-    return totalcost.value()
+    return Make, totalcost.value()
 
 def tstudnet(verbose):
     mi = [55,40,50,35,45,30]
