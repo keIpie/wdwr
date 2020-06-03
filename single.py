@@ -13,14 +13,21 @@ from rpy2.robjects.packages import importr
 from amplpy import AMPL, DataFrame
 
 def single(modfile, solver, verbose):
+    """
+    Evaluates single criterion model for the project data
+    Parameters:
+        modfile (str): path to file defining model
+        solver (str):  name of solver to be used
+        verbose (bool): if True prints comments
+    Returns:
+        None
+    """
     if(verbose):
         print("---------------------------------------------------------------")
         print("   WDWR project 20204 - model jednokryterialny ")
         print("---------------------------------------------------------------")
     ampl = AMPL()
     ampl.read(os.path.join('models/', modfile))
-    #utils = importr('utils')
-    #data = robjects.r('read.table(file = "http://personality-project.org/r/datasets/R.appendix3.data", header = T)')
     # create sets
     PRODUCTS = ['A','B']
     MONTHS = ['M1','M2','M3']
@@ -145,6 +152,16 @@ def single(modfile, solver, verbose):
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
 
 def singleR(R, modfile, solver, verbose):
+    """
+    Evaluates single criterion model for the project data
+    Parameters:
+        modfile (str): path to file defining model
+        solver (str):  name of solver to be used
+        verbose (bool): if True prints comments
+    Returns:
+        Make ([int]): list of numbers of products to be made during each month (decision)
+        totalcost: value of minimized total cost
+    """
     if(verbose):
         print("---------------------------------------------------------------")
         print("   WDWR project 20204 - model jednokryterialny ")
@@ -280,7 +297,270 @@ def singleR(R, modfile, solver, verbose):
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
     return Make, totalcost.value()
 
+def single2(modfile, solver, verbose):
+    """
+    Evaluates single criterion model for the project data - version 2
+    Parameters:
+        modfile (str): path to file defining model
+        solver (str):  name of solver to be used
+        verbose (bool): if True prints comments
+    Returns:
+        None
+    """
+    if(verbose):
+        print("---------------------------------------------------------------")
+        print("   WDWR project 20204 - model jednokryterialny ")
+        print("---------------------------------------------------------------")
+    ampl = AMPL()
+    ampl.read(os.path.join('models/', modfile))
+    #utils = importr('utils')
+    #data = robjects.r('read.table(file = "http://personality-project.org/r/datasets/R.appendix3.data", header = T)')
+    # create sets
+    PRODUCTS = ['A','B']
+    MONTHS = ['M1','M2','M3']
+    RESOURCES = ['Z1','Z2']
+    # variabels for params
+    promised = [1100,1200]
+    R = tstudnet(verbose)
+    cost = [[R[0],R[1],R[2]],[R[3],R[4],R[5]]]
+    maxno = 150 # 150 sztuk mozna przechowywac z miesiaca na miesiac
+    percent = 15/100 # 15% kosztow wytwarzania ksoztuje przechowywanie
+    demand = [[0.2, 0.7],[0.8, 0.3]]
+    delivery = [[600,700,550],[1400,900,1200]]
+    # create params
+    ampl.param['maxno'] = maxno #ustawianie zwyklego parametru
+    ampl.param['percent'] = percent #ustawianie zwyklego parametru
+    # create tables
+    # data frame for products
+    dp = DataFrame('PRODUCTS')
+    dp.setColumn('PRODUCTS', PRODUCTS)
+    dp.addColumn('promised', promised)
+    ampl.setData(dp, 'PRODUCTS')
+    print(dp)
+    # data frame for months
+    dm = DataFrame('MONTHS')
+    dm.setColumn('MONTHS', MONTHS)
+    ampl.setData(dm, 'MONTHS')
+    print(dm)
+    # data frame for resources
+    dr = DataFrame('RESOURCES')
+    dr.setColumn('RESOURCES', RESOURCES)
+    ampl.setData(dr, 'RESOURCES')
+    print(dr)
+    # data frame with demands
+    ddd = DataFrame(('PRODUCTS','RESOURCES'),'demand')
+    ddd.setValues({
+        (product, res): demand[i][j]
+        for i, res in enumerate(RESOURCES)
+        for j, product in enumerate(PRODUCTS)
+    })
+    ampl.setData(ddd)
+    print(ddd)
+    # data frame with deliveries
+    ddy = DataFrame(('MONTHS','RESOURCES'),'delivery')
+    ddy.setValues({
+        (month, res): delivery[i][j]
+        for i, res in enumerate(RESOURCES)
+        for j, month in enumerate(MONTHS)
+    })
+    ampl.setData(ddy)
+    print(ddy)
+    # data frame with costs
+    dc = DataFrame(('PRODUCTS','MONTHS'),'cost')
+    dc.setValues({
+        (product, month): cost[i][j]
+        for i, product in enumerate(PRODUCTS)
+        for j, month in enumerate(MONTHS)
+    })
+    ampl.setData(dc)
+    print(dc)
+    # solve
+    ampl.option['solver'] = solver
+    ampl.solve()
+    # result
+    totalcost = ampl.getObjective('Total_Cost')
+    print("Total cost:", totalcost.value())
+    if(verbose):
+        ampl.display('Make')
+        ampl.display('cond')
+        dfM = ampl.var['Make'].getValues().toPandas()
+        Make = dfM['Make.val'].astype(float)
+        dfC = ampl.var['cond'].getValues().toPandas()
+        cond = dfC['cond.val'].astype(float)
+        #print('Make:', Make, type(Make))
+        #print('time:', nm.dot(invert(a),X))
+        print("---------------------------------------------------------------")
+        print("   PRODUCING COSTS")
+        print("---------------------------------------------------------------")
+        print('producing cost (A,M1) = ', Make[0]*cost[0][0])
+        print('producing cost (A,M2) = ', Make[1]*cost[0][1])
+        print('producing cost (A,M3) = ', Make[2]*cost[0][2])
+        print('producing cost (B,M1) = ', Make[3]*cost[1][0])
+        print('producing cost (B,M2) = ', Make[4]*cost[1][1])
+        print('producing cost (B,M3) = ', Make[5]*cost[1][2])
+        pc = Make[0]*cost[0][0] + Make[1]*cost[0][1] + Make[2]*cost[0][2] + Make[3]*cost[1][0] + Make[4]*cost[1][1] + Make[5]*cost[1][2]
+        print('producing cost = ', pc)
+        print("---------------------------------------------------------------")
+        print("   STORAGE COSTS")
+        print("---------------------------------------------------------------")
+        print('storage cost (A,M1) = ', cond[0]*(Make[0]-maxno)*percent*cost[0][0])
+        print('storage cost (A,M2) = ', cond[1]*(Make[1]-maxno)*percent*cost[0][1])
+        print('storage cost (A,M3) = ', cond[2]*(Make[2]-maxno)*percent*cost[0][2])
+        print('storage cost (B,M1) = ', cond[3]*(Make[3]-maxno)*percent*cost[1][0])
+        print('storage cost (B,M2) = ', cond[4]*(Make[4]-maxno)*percent*cost[1][1])
+        print('storage cost (B,M3) = ', cond[5]*(Make[5]-maxno)*percent*cost[1][2])
+        sc = cond[0]*(Make[0]-maxno)*percent*cost[0][0] + cond[1]*(Make[1]-maxno)*percent*cost[0][1] + cond[2]*(Make[2]-maxno)*percent*cost[0][2] + cond[3]*(Make[3]-maxno)*percent*cost[1][0] + cond[4]*(Make[4]-maxno)*percent*cost[1][1] + cond[5]*(Make[5]-maxno)*percent*cost[1][2]
+        print('storage cost = ', sc)
+        print("---------------------------------------------------------------")
+        print("   TOTAL COST")
+        print("---------------------------------------------------------------")
+        print('total cost = ', pc + sc)
+        print("---------------------------------------------------------------")
+        print("   ARE CONDITIONS SATISFIED?")
+        print("---------------------------------------------------------------")
+        print('(Z1, M1) : ', (Make[0]*demand[0][0] + Make[3]*demand[0][1]), "<=", delivery[0][0], (Make[0]*demand[0][0] + Make[3]*demand[0][1]) <= delivery[0][0])
+        print('(Z2, M1) : ', (Make[0]*demand[1][0] + Make[3]*demand[1][1]), "<=", delivery[1][0], (Make[0]*demand[1][0] + Make[3]*demand[1][1]) <= delivery[1][0])
+        print('(Z1, M2) : ', (Make[1]*demand[0][0] + Make[4]*demand[0][1]), "<=", delivery[0][1], (Make[1]*demand[0][0] + Make[4]*demand[0][1]) <= delivery[0][1])
+        print('(Z2, M2) : ', (Make[1]*demand[1][0] + Make[4]*demand[1][1]), "<=", delivery[1][1], (Make[1]*demand[1][0] + Make[4]*demand[1][1]) <= delivery[1][1])
+        print('(Z1, M3) : ', (Make[2]*demand[0][0] + Make[5]*demand[0][1]), "<=", delivery[0][2], (Make[2]*demand[0][0] + Make[5]*demand[0][1]) <= delivery[0][2])
+        print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
+
+def single2R(modfile, solver, verbose):
+    """
+    Evaluates single criterion model for the project data - version 2
+    Parameters:
+        modfile (str): path to file defining model
+        solver (str):  name of solver to be used
+        verbose (bool): if True prints comments
+    Returns:
+        Make ([int]): list of numbers of products to be made during each month (decision)
+        totalcost: value of minimized total cost
+    """
+    if(verbose):
+        print("---------------------------------------------------------------")
+        print("   WDWR project 20204 - model jednokryterialny ")
+        print("---------------------------------------------------------------")
+    ampl = AMPL()
+    ampl.read(os.path.join('models/', modfile))
+    #utils = importr('utils')
+    #data = robjects.r('read.table(file = "http://personality-project.org/r/datasets/R.appendix3.data", header = T)')
+    # create sets
+    PRODUCTS = ['A','B']
+    MONTHS = ['M1','M2','M3']
+    RESOURCES = ['Z1','Z2']
+    # variabels for params
+    promised = [1100,1200]
+    R = tstudnet(verbose)
+    cost = [[R[0],R[1],R[2]],[R[3],R[4],R[5]]]
+    maxno = 150 # 150 sztuk mozna przechowywac z miesiaca na miesiac
+    percent = 15/100 # 15% kosztow wytwarzania ksoztuje przechowywanie
+    demand = [[0.2, 0.7],[0.8, 0.3]]
+    delivery = [[600,700,550],[1400,900,1200]]
+    # create params
+    ampl.param['maxno'] = maxno #ustawianie zwyklego parametru
+    ampl.param['percent'] = percent #ustawianie zwyklego parametru
+    # create tables
+    # data frame for products
+    dp = DataFrame('PRODUCTS')
+    dp.setColumn('PRODUCTS', PRODUCTS)
+    dp.addColumn('promised', promised)
+    ampl.setData(dp, 'PRODUCTS')
+    print(dp)
+    # data frame for months
+    dm = DataFrame('MONTHS')
+    dm.setColumn('MONTHS', MONTHS)
+    ampl.setData(dm, 'MONTHS')
+    print(dm)
+    # data frame for resources
+    dr = DataFrame('RESOURCES')
+    dr.setColumn('RESOURCES', RESOURCES)
+    ampl.setData(dr, 'RESOURCES')
+    print(dr)
+    # data frame with demands
+    ddd = DataFrame(('PRODUCTS','RESOURCES'),'demand')
+    ddd.setValues({
+        (product, res): demand[i][j]
+        for i, res in enumerate(RESOURCES)
+        for j, product in enumerate(PRODUCTS)
+    })
+    ampl.setData(ddd)
+    print(ddd)
+    # data frame with deliveries
+    ddy = DataFrame(('MONTHS','RESOURCES'),'delivery')
+    ddy.setValues({
+        (month, res): delivery[i][j]
+        for i, res in enumerate(RESOURCES)
+        for j, month in enumerate(MONTHS)
+    })
+    ampl.setData(ddy)
+    print(ddy)
+    # data frame with costs
+    dc = DataFrame(('PRODUCTS','MONTHS'),'cost')
+    dc.setValues({
+        (product, month): cost[i][j]
+        for i, product in enumerate(PRODUCTS)
+        for j, month in enumerate(MONTHS)
+    })
+    ampl.setData(dc)
+    print(dc)
+    # solve
+    ampl.option['solver'] = solver
+    ampl.solve()
+    # result
+    totalcost = ampl.getObjective('Total_Cost')
+    print("Total cost:", totalcost.value())
+    if(verbose):
+        ampl.display('Make')
+        ampl.display('cond')
+        dfM = ampl.var['Make'].getValues().toPandas()
+        Make = dfM['Make.val'].astype(float)
+        dfC = ampl.var['cond'].getValues().toPandas()
+        cond = dfC['cond.val'].astype(float)
+        #print('Make:', Make, type(Make))
+        #print('time:', nm.dot(invert(a),X))
+        print("---------------------------------------------------------------")
+        print("   PRODUCING COSTS")
+        print("---------------------------------------------------------------")
+        print('producing cost (A,M1) = ', Make[0]*cost[0][0])
+        print('producing cost (A,M2) = ', Make[1]*cost[0][1])
+        print('producing cost (A,M3) = ', Make[2]*cost[0][2])
+        print('producing cost (B,M1) = ', Make[3]*cost[1][0])
+        print('producing cost (B,M2) = ', Make[4]*cost[1][1])
+        print('producing cost (B,M3) = ', Make[5]*cost[1][2])
+        pc = Make[0]*cost[0][0] + Make[1]*cost[0][1] + Make[2]*cost[0][2] + Make[3]*cost[1][0] + Make[4]*cost[1][1] + Make[5]*cost[1][2]
+        print('producing cost = ', pc)
+        print("---------------------------------------------------------------")
+        print("   STORAGE COSTS")
+        print("---------------------------------------------------------------")
+        print('storage cost (A,M1) = ', cond[0]*(Make[0]-maxno)*percent*cost[0][0])
+        print('storage cost (A,M2) = ', cond[1]*(Make[1]-maxno)*percent*cost[0][1])
+        print('storage cost (A,M3) = ', cond[2]*(Make[2]-maxno)*percent*cost[0][2])
+        print('storage cost (B,M1) = ', cond[3]*(Make[3]-maxno)*percent*cost[1][0])
+        print('storage cost (B,M2) = ', cond[4]*(Make[4]-maxno)*percent*cost[1][1])
+        print('storage cost (B,M3) = ', cond[5]*(Make[5]-maxno)*percent*cost[1][2])
+        sc = cond[0]*(Make[0]-maxno)*percent*cost[0][0] + cond[1]*(Make[1]-maxno)*percent*cost[0][1] + cond[2]*(Make[2]-maxno)*percent*cost[0][2] + cond[3]*(Make[3]-maxno)*percent*cost[1][0] + cond[4]*(Make[4]-maxno)*percent*cost[1][1] + cond[5]*(Make[5]-maxno)*percent*cost[1][2]
+        print('storage cost = ', sc)
+        print("---------------------------------------------------------------")
+        print("   TOTAL COST")
+        print("---------------------------------------------------------------")
+        print('total cost = ', pc + sc)
+        print("---------------------------------------------------------------")
+        print("   ARE CONDITIONS SATISFIED?")
+        print("---------------------------------------------------------------")
+        print('(Z1, M1) : ', (Make[0]*demand[0][0] + Make[3]*demand[0][1]), "<=", delivery[0][0], (Make[0]*demand[0][0] + Make[3]*demand[0][1]) <= delivery[0][0])
+        print('(Z2, M1) : ', (Make[0]*demand[1][0] + Make[3]*demand[1][1]), "<=", delivery[1][0], (Make[0]*demand[1][0] + Make[3]*demand[1][1]) <= delivery[1][0])
+        print('(Z1, M2) : ', (Make[1]*demand[0][0] + Make[4]*demand[0][1]), "<=", delivery[0][1], (Make[1]*demand[0][0] + Make[4]*demand[0][1]) <= delivery[0][1])
+        print('(Z2, M2) : ', (Make[1]*demand[1][0] + Make[4]*demand[1][1]), "<=", delivery[1][1], (Make[1]*demand[1][0] + Make[4]*demand[1][1]) <= delivery[1][1])
+        print('(Z1, M3) : ', (Make[2]*demand[0][0] + Make[5]*demand[0][1]), "<=", delivery[0][2], (Make[2]*demand[0][0] + Make[5]*demand[0][1]) <= delivery[0][2])
+        print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
+    return Make, totalcost.value()
+
 def tstudnet(verbose):
+    """
+    Counts vector of expected values for multidimensional t-Student distribution for project data
+    Returns:
+        vector of expected values ([float])
+    """
     mi = [55,40,50,35,45,30]
     sigma = [[1,1,0,2,-1,-1],[1,16,-6,-6,-2,12],[0,-6,4,2,-2,-5],
             [2,-6,2,25,0,-17],[-1,-2,-2,0,9,-5],[-1,12,-5,-17,-5,36]]
@@ -289,16 +569,18 @@ def tstudnet(verbose):
     degrees = 5
     return ER(mi,sigma,alpha,beta,degrees)
 
-def tstudnet_test(verbose):
-    print("test rozkałdu t-studenta z 4 stopniami swobody")
-    mi = [45,35,40]
-    sigma = [[1,-2,-1],[-2,36,-8],[-1,-8,9]]
-    alpha = 20
-    beta = 50
-    degrees = 4
-    return ER(mi,sigma,alpha,beta,degrees)
-
 def ER(mi,sigma,alpha,beta,degrees):
+    """
+    Counts expected value of variable from multidimensional t-Studnet distribution
+    Parameters:
+        mi ([int]): vector of average values
+        sigma ([int]): covariance matrix
+        alpha (int): lower limit of the narrowed range
+        beta (int): upper limit of the narrowed range
+        degree (int): number of degrees of freedom
+    Returns:
+        vect ([float]): vector of expected values
+    """
     vect = []
     for i in xrange(len(mi)):
         E = ERi(mi[i],sigma[i][i],alpha,beta,degrees)
@@ -307,12 +589,24 @@ def ER(mi,sigma,alpha,beta,degrees):
     return vect
 
 def ERi(mi,sigma,alpha,beta,v):
+    """
+    Counts expected value of variable from multidimensional t-Studnet distribution
+    Parameters:
+        mi (int): average value in i-th dimension
+        sigma (int): standard deviation in i-th dimension
+        alpha (int): lower limit of the narrowed range
+        beta (int): upper limit of the narrowed range
+        v (int): number of degrees of freedom
+    Returns:
+        expected value (float)
+    """
     sigma = math.sqrt(abs(sigma))
+    print("sigma", sigma)
     a = (alpha-mi)/sigma
     b = (beta-mi)/sigma
-    #print("a,b", (a,b))
+    print("a,b", (a,b))
     r_gamma = robjects.r['gamma']
-    g = r_gamma(v)[0]
+    g = r_gamma((v-1)/2)[0]
     numerator = g*((v+a**2)**(-(v-1)/2)-(v+b**2)**(-(v-1)/2))*v**(v/2)
     r_pt = robjects.r['pt']
     fb = r_pt(b,v)[0]
@@ -322,3 +616,20 @@ def ERi(mi,sigma,alpha,beta,v):
     denominator = 1*f*g
     frac = numerator/denominator
     return mi + sigma*frac
+
+########################### tests of correctness ###############################
+
+def tstudnet_test(verbose):
+    """
+    Tests counting vector of expected values for multidimensional t-Student distribution for example from lecture
+    Returns:
+        vector of expected values ([float])
+    """
+    if verbose:
+        print("test rozkałdu t-studenta z 4 stopniami swobody")
+    mi = [45,35,40]
+    sigma = [[1,-2,-1],[-2,36,-8],[-1,-8,9]]
+    alpha = 20
+    beta = 50
+    degrees = 4
+    return ER(mi,sigma,alpha,beta,degrees)

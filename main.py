@@ -9,7 +9,9 @@ from bi import *
 def main():
     parser = argparse.ArgumentParser(description='AMPL modeling.')
     parser.add_argument("--solver", type=str, help="specify solver", default="cplex")
+    parser.add_argument("--fsd", help="check first stochastic domination", action="store_true")
     parser.add_argument("--msingle", help="single criterion model", action="store_true")
+    parser.add_argument("--msingle2", help="single criterion model second version", action="store_true")
     parser.add_argument("--mbi", help="bi-criteria model", action="store_true")
     parser.add_argument("--testampl", help="test AMPL", action="store_true")
     parser.add_argument("--testread", help="test AMPL", action="store_true")
@@ -23,8 +25,12 @@ def main():
         testread(args.solver, args.mod, args.dat, args.verbose)
     if args.msingle:
         single(args.mod, args.solver, args.verbose)
+    if args.msingle2:
+        single2(args.mod, args.solver, args.verbose)
     if args.mbi:
         bi(args.mod, args.solver, args.verbose)
+    if args.fsd:
+        fsd(86, 3397, args.mod, args.solver, args.verbose)
 
 if __name__ == "__main__":
     main()
