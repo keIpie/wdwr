@@ -297,6 +297,70 @@ def singleR(R, modfile, solver, verbose):
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
     return Make, totalcost.value()
 
+def tstudnet(verbose):
+    """
+    Counts vector of expected values for multidimensional t-Student distribution for project data
+    Returns:
+        vector of expected values ([float])
+    """
+    mi = [55,40,50,35,45,30]
+    sigma = [[1,1,0,2,-1,-1],[1,16,-6,-6,-2,12],[0,-6,4,2,-2,-5],
+            [2,-6,2,25,0,-17],[-1,-2,-2,0,9,-5],[-1,12,-5,-17,-5,36]]
+    alpha = 20
+    beta = 60
+    degrees = 5
+    return ER(mi,sigma,alpha,beta,degrees)
+
+def ER(mi,sigma,alpha,beta,degrees):
+    """
+    Counts expected value of variable from multidimensional t-Studnet distribution
+    Parameters:
+        mi ([int]): vector of average values
+        sigma ([int]): covariance matrix
+        alpha (int): lower limit of the narrowed range
+        beta (int): upper limit of the narrowed range
+        degree (int): number of degrees of freedom
+    Returns:
+        vect ([float]): vector of expected values
+    """
+    vect = []
+    for i in xrange(len(mi)):
+        E = ERi(mi[i],sigma[i][i],alpha,beta,degrees)
+        vect.append(E)
+        print("ER"+str(i+1)+":", E)
+    return vect
+
+def ERi(mi,sigma,alpha,beta,v):
+    """
+    Counts expected value of variable from multidimensional t-Studnet distribution
+    Parameters:
+        mi (int): average value in i-th dimension
+        sigma (int): standard deviation in i-th dimension
+        alpha (int): lower limit of the narrowed range
+        beta (int): upper limit of the narrowed range
+        v (int): number of degrees of freedom
+    Returns:
+        expected value (float)
+    """
+    sigma = math.sqrt(abs(sigma))
+    print("sigma", sigma)
+    a = (alpha-mi)/sigma
+    b = (beta-mi)/sigma
+    print("a,b", (a,b))
+    r_gamma = robjects.r['gamma']
+    g = r_gamma((v-1)/2)[0]
+    numerator = g*((v+a**2)**(-(v-1)/2)-(v+b**2)**(-(v-1)/2))*v**(v/2)
+    r_pt = robjects.r['pt']
+    fb = r_pt(b,v)[0]
+    fa = r_pt(a,v)[0]
+    f = fb - fa
+    g = r_gamma(v/2)[0]*r_gamma(1/2)[0]
+    denominator = 1*f*g
+    frac = numerator/denominator
+    return mi + sigma*frac
+
+#################### variant with single2.mod ##################################
+
 def single2(modfile, solver, verbose):
     """
     Evaluates single criterion model for the project data - version 2
@@ -555,67 +619,6 @@ def single2R(modfile, solver, verbose):
         print('(Z2, M3) ; ', (Make[2]*demand[1][0] + Make[5]*demand[1][1]), "<=", delivery[1][2], (Make[2]*demand[1][0] + Make[5]*demand[1][1]) <= delivery[1][2])
     return Make, totalcost.value()
 
-def tstudnet(verbose):
-    """
-    Counts vector of expected values for multidimensional t-Student distribution for project data
-    Returns:
-        vector of expected values ([float])
-    """
-    mi = [55,40,50,35,45,30]
-    sigma = [[1,1,0,2,-1,-1],[1,16,-6,-6,-2,12],[0,-6,4,2,-2,-5],
-            [2,-6,2,25,0,-17],[-1,-2,-2,0,9,-5],[-1,12,-5,-17,-5,36]]
-    alpha = 20
-    beta = 60
-    degrees = 5
-    return ER(mi,sigma,alpha,beta,degrees)
-
-def ER(mi,sigma,alpha,beta,degrees):
-    """
-    Counts expected value of variable from multidimensional t-Studnet distribution
-    Parameters:
-        mi ([int]): vector of average values
-        sigma ([int]): covariance matrix
-        alpha (int): lower limit of the narrowed range
-        beta (int): upper limit of the narrowed range
-        degree (int): number of degrees of freedom
-    Returns:
-        vect ([float]): vector of expected values
-    """
-    vect = []
-    for i in xrange(len(mi)):
-        E = ERi(mi[i],sigma[i][i],alpha,beta,degrees)
-        vect.append(E)
-        print("ER"+str(i+1)+":", E)
-    return vect
-
-def ERi(mi,sigma,alpha,beta,v):
-    """
-    Counts expected value of variable from multidimensional t-Studnet distribution
-    Parameters:
-        mi (int): average value in i-th dimension
-        sigma (int): standard deviation in i-th dimension
-        alpha (int): lower limit of the narrowed range
-        beta (int): upper limit of the narrowed range
-        v (int): number of degrees of freedom
-    Returns:
-        expected value (float)
-    """
-    sigma = math.sqrt(abs(sigma))
-    print("sigma", sigma)
-    a = (alpha-mi)/sigma
-    b = (beta-mi)/sigma
-    print("a,b", (a,b))
-    r_gamma = robjects.r['gamma']
-    g = r_gamma((v-1)/2)[0]
-    numerator = g*((v+a**2)**(-(v-1)/2)-(v+b**2)**(-(v-1)/2))*v**(v/2)
-    r_pt = robjects.r['pt']
-    fb = r_pt(b,v)[0]
-    fa = r_pt(a,v)[0]
-    f = fb - fa
-    g = r_gamma(v/2)[0]*r_gamma(1/2)[0]
-    denominator = 1*f*g
-    frac = numerator/denominator
-    return mi + sigma*frac
 
 ########################### tests of correctness ###############################
 
@@ -632,4 +635,9 @@ def tstudnet_test(verbose):
     alpha = 20
     beta = 50
     degrees = 4
-    return ER(mi,sigma,alpha,beta,degrees)
+    expval = ER(mi,sigma,alpha,beta,degrees)
+    if verbose:
+        print(expval)
+    if expval==[44.949089766921155, 35.0, 39.65718340670251]:
+        print("PASSED")
+    return expval

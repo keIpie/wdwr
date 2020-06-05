@@ -492,7 +492,12 @@ def tstudnet_test(verbose):
     alpha = 20
     beta = 50
     degrees = 4
-    return ER(mi,sigma,alpha,beta,degrees)
+    expval = ER(mi,sigma,alpha,beta,degrees)
+    if verbose:
+        print(expval)
+    if expval==[44.949089766921155, 35.0, 39.65718340670251]:
+        print("PASSED")
+    return expval
 
 #################### variant with single2.mod ##################################
 
