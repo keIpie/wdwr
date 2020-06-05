@@ -24,7 +24,7 @@ Arguments for commands:
 
 To test counting of expected value run:
 
-`./main.py --testexp" --verbose`
+`./main.py --testexp --verbose`
 
 -----------------------------------------------------------------------------------------
 
